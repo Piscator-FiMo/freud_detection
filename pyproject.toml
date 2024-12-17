@@ -2,7 +2,7 @@
 name = "freud-detection"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Gerber Florian", "Genecand Vincent", "Jungen Björn", "Stevanovski Angelina", "Fischer Moritz"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
