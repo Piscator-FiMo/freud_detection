@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "freud-detection"
+version = "0.1.0"
+description = ""
+authors = ["Gerber Florian", "Genecand Vincent", "Jungen Björn", "Stevanovski Angelina", "Fischer Moritz"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12.7"
+torch = "^2.5.1"
+python-dotenv = "^1.0.1"
+openai = "^1.58.1"
+kagglehub = "^0.3.6"
+pandas = "^2.2.3"
+numpy = "^2.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
