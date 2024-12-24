@@ -18,7 +18,7 @@ load_dotenv()
 # Initializing OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 #MODEL = 'o1-preview'
-MODEL = 'gpt-4o'
+MODEL = 'gpt-4o-mini'
 
 path = str(Path.home()) + "/.cache/kagglehub/datasets/mlg-ulb/creditcardfraud/versions/3"
 if not os.path.isfile(path + "/creditcard.csv"):
@@ -78,3 +78,4 @@ if __name__ == "__main__":
         dropped = df_generated.dropna()
         # Save the DataFrame to a CSV file
         df_generated.to_csv(f"data/synthetic_data_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.csv", index=False)
+        print("created file")
