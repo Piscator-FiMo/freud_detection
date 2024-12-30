@@ -1,92 +1,25 @@
-import datetime
-import random
-
-import kagglehub
-import pandas as pd
-import numpy as np
-from openai import OpenAI
-from dotenv import load_dotenv
-from pathlib import Path
-
-import os
-import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler, RobustScaler
-from sklearn.model_selection import train_test_split
-
+import numpy as np
+import pandas as pd
+import seaborn as sns
 # Classifier Libraries
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import cross_val_predict
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
-from sklearn.metrics import precision_recall_curve
-import collections
-
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 from torch import nn
-import csv
-from io import StringIO
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Initializing OpenAI client
-#client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-# MODEL = 'o1-preview'
-MODEL = 'gpt-4o'
-
-path = str(Path.home()) + "/.cache/kagglehub/datasets/mlg-ulb/creditcardfraud/versions/3"
-if not os.path.isfile(path + "/creditcard.csv"):
-    # Download data
-    print("downloading creditcard.csv")
-    path = kagglehub.dataset_download("mlg-ulb/creditcardfraud")
-    print("Path to dataset files:", path)
-
-# Load data
-df = pd.read_csv(path + "/creditcard.csv")
-df.info()
-
-# How many good/fraudulent transactions are there?
-print(df['Class'].value_counts())
-
-# Take out the fraudulent transactions
-df_fraud = df[df['Class'] == 1]
-df_regular = df[df['Class'] == 0]
-
-df_fraud_for_generation = df_fraud.iloc[:50, :]
-df_fraud_for_testing = df_fraud.iloc[50:, :]
-
-df_regular_for_generation = df_regular.iloc[:50, :]
-df_regular_for_rest = df_regular.iloc[50:, :]
-
-df_for_generation = pd.concat([df_fraud_for_generation, df_regular_for_generation])
+from KaggleDatasetProvider import KaggleDatasetProvider
 
 
-# https://cookbook.openai.com/examples/sdg1
-def generate_data(df: pd.DataFrame):
-    question = f"""
-Please generate 100 rows of new fraudulent transactions data. The provided CSV includes both fraudulent (Class column is 1) and non-fraudulent (Class column is 0) transactions. Ensure the new data has the same columns as the example CSV below, but with new values for each column. The new data should represent fraudulent transactions, where the Class column is 1. Each row should have exactly 31 columns, with the same data types as the example data.
-
-Example CSV:
-    {df.to_csv(index=False)}
-    
-    Respond only with the data.
-    """
-
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant designed to generate synthetic data."},
-            {"role": "user", "content": question}
-        ]
-    )
-    return response.choices[0].message.content
-
+#
 def visualize_data(df: pd.DataFrame, amount="Amount", time="Time"):
     #Create Barplot to Show Distribution of Classes
     sns.countplot(df, x = 'Class')
@@ -220,17 +153,7 @@ class NeuralNetwork(nn.Module):
 
 
 if __name__ == "__main__":
-    for _ in range(10):
-        data = generate_data(pd.DataFrame(df_for_generation))
-        data = data.split("\n", 1)[1]
-        # Read the data into a pandas DataFrame
-        df_generated = pd.read_csv(StringIO(data))
-        df_generated = df_generated.dropna()
-        # Save the DataFrame to a CSV file
-        df_generated.to_csv(f"data/synthetic_data_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.csv", index=False)
-        print("created file")
-    #generate_data(pd.DataFrame(df_splits[0]))
-
+    df = KaggleDatasetProvider().fetch_data()
     #Desribe Data
     df.describe()
 
@@ -239,8 +162,6 @@ if __name__ == "__main__":
 
     #Standardise Data
     scaled_df = scale_data(df)
-
-
 
     #Undersample Non-Fraud Transactions
     sample_df = scaled_df.sample(frac=1)
