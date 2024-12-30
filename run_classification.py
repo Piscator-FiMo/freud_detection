@@ -132,51 +132,7 @@ def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tr
     plt.show()
 
 
-
-
-
-def run_classification(df: pd.DataFrame):
-    #Desribe Data
-    df.describe()
-
-    #visualize Data
-    visualize_data(df)
-
-    #Standardise Data
-    scaled_df = scale_data(df)
-
-    #Undersample Non-Fraud Transactions
-    sample_df = scaled_df.sample(frac=1)
-
-    # amount of fraud classes 492 rows.
-    fraud_df = sample_df.loc[df['Class'] == 1]
-    non_fraud_df = sample_df.loc[df['Class'] == 0][:492]
-    normal_distributed_df = pd.concat([fraud_df, non_fraud_df])
-
-    # Shuffle dataframe rows
-    new_df = normal_distributed_df.sample(frac=1, random_state=42)
-
-    # Normal Distributed DF
-    print('No Frauds: ', new_df['Class'].value_counts()[0], ":", round(new_df['Class'].value_counts()[0] / len(new_df) * 100, 2),
-          '% of the dataset')
-    print('Frauds: ', new_df['Class'].value_counts()[1], ":", round(new_df['Class'].value_counts()[1] / len(new_df) * 100, 2),
-          '% of the dataset')
-
-    visualize_data(new_df, amount="scaled_amount", time="scaled_time")
-
-    #Show Correlation Matrix, Difference between original data an normal_distribution_data
-    show_correlationMatrix(df, new_df)
-
-    #Remove Outliers from Variables with High Correlation
-    no_outliers_df = removeOutliers(new_df, col='V10')
-    no_outliers_df = removeOutliers(no_outliers_df, col='V12')
-    no_outliers_df = removeOutliers(no_outliers_df, col='V14')
-
-
-    visualize_data(no_outliers_df, amount="scaled_amount", time="scaled_time")
-
-    X_train, X_test, y_train, y_test = traintest_split(no_outliers_df)
-
+def run_classifiers(X_test, X_train, y_test, y_train):
     classifiers = {
         "LogisiticRegression": LogisticRegression(),
         "KNearest": KNeighborsClassifier(),
@@ -185,44 +141,72 @@ def run_classification(df: pd.DataFrame):
     }
     classifiers_params = {
         "LogisiticRegression": {"penalty": ['l1', 'l2'], 'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]},
-        "KNearest": {"n_neighbors": list(range(2,5,1)), 'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']},
+        "KNearest": {"n_neighbors": list(range(2, 5, 1)), 'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']},
         "Support Vector Classifier": {'C': [0.5, 0.7, 0.9, 1], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']},
-        "DecisionTreeClassifier": {"criterion": ["gini", "entropy"], "max_depth": list(range(2,4,1)),
-              "min_samples_leaf": list(range(5,7,1))}
+        "DecisionTreeClassifier": {"criterion": ["gini", "entropy"], "max_depth": list(range(2, 4, 1)),
+                                   "min_samples_leaf": list(range(5, 7, 1))}
     }
-
     for key, classifier in classifiers.items():
         classifier.fit(X_train, y_train)
         training_score = cross_val_score(classifier, X_train, y_train, cv=5)
-        print("Classifiers: ", classifier.__class__.__name__, "Has a training score of", round(training_score.mean(), 2) * 100, "% accuracy score")
-
-
-    log_reg = GridSearch(classifiers["LogisiticRegression"], X_train, y_train, classifiers_params["LogisiticRegression"])
+        print("Classifiers: ", classifier.__class__.__name__, "Has a training score of",
+              round(training_score.mean(), 2) * 100, "% accuracy score")
+    log_reg = GridSearch(classifiers["LogisiticRegression"], X_train, y_train,
+                         classifiers_params["LogisiticRegression"])
     knears_neighbors = GridSearch(classifiers["KNearest"], X_train, y_train, classifiers_params["KNearest"])
-    svc = GridSearch(classifiers["Support Vector Classifier"], X_train, y_train, classifiers_params["Support Vector Classifier"])
-    tree_clf = GridSearch(classifiers["DecisionTreeClassifier"], X_train, y_train, classifiers_params["DecisionTreeClassifier"])
-
+    svc = GridSearch(classifiers["Support Vector Classifier"], X_train, y_train,
+                     classifiers_params["Support Vector Classifier"])
+    tree_clf = GridSearch(classifiers["DecisionTreeClassifier"], X_train, y_train,
+                          classifiers_params["DecisionTreeClassifier"])
     log_reg_pred = cross_val_predict(log_reg, X_train, y_train, cv=5, method="decision_function")
     knears_pred = cross_val_predict(knears_neighbors, X_train, y_train, cv=5)
     svc_pred = cross_val_predict(svc, X_train, y_train, cv=5, method="decision_function")
     tree_pred = cross_val_predict(tree_clf, X_train, y_train, cv=5)
-
     # Logistic Regression fitted using SMOTE technique
     y_pred_log_reg = log_reg.predict(X_test)
     y_pred_knear = knears_neighbors.predict(X_test)
     y_pred_svc = svc.predict(X_test)
     y_pred_tree = tree_clf.predict(X_test)
-
     showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree)
-
     print('Logistic Regression:')
     print(classification_report(y_test, y_pred_log_reg))
-
     print('KNears Neighbors:')
     print(classification_report(y_test, y_pred_knear))
-
     print('Support Vector Classifier:')
     print(classification_report(y_test, y_pred_svc))
-
     print('Support Vector Classifier:')
     print(classification_report(y_test, y_pred_tree))
+
+
+def prepare_undersampled_split(df):
+    # Desribe Data
+    df.describe()
+    # visualize Data
+    visualize_data(df)
+    # Standardise Data
+    scaled_df = scale_data(df)
+    # Undersample Non-Fraud Transactions
+    sample_df = scaled_df.sample(frac=1)
+    # amount of fraud classes 492 rows.
+    fraud_df = sample_df.loc[df['Class'] == 1]
+    non_fraud_df = sample_df.loc[df['Class'] == 0][:492]
+    normal_distributed_df = pd.concat([fraud_df, non_fraud_df])
+    # Shuffle dataframe rows
+    new_df = normal_distributed_df.sample(frac=1, random_state=42)
+    # Normal Distributed DF
+    print('No Frauds: ', new_df['Class'].value_counts()[0], ":",
+          round(new_df['Class'].value_counts()[0] / len(new_df) * 100, 2),
+          '% of the dataset')
+    print('Frauds: ', new_df['Class'].value_counts()[1], ":",
+          round(new_df['Class'].value_counts()[1] / len(new_df) * 100, 2),
+          '% of the dataset')
+    visualize_data(new_df, amount="scaled_amount", time="scaled_time")
+    # Show Correlation Matrix, Difference between original data an normal_distribution_data
+    show_correlationMatrix(df, new_df)
+    # Remove Outliers from Variables with High Correlation
+    no_outliers_df = removeOutliers(new_df, col='V10')
+    no_outliers_df = removeOutliers(no_outliers_df, col='V12')
+    no_outliers_df = removeOutliers(no_outliers_df, col='V14')
+    visualize_data(no_outliers_df, amount="scaled_amount", time="scaled_time")
+    X_train, X_test, y_train, y_test = traintest_split(no_outliers_df)
+    return X_test, X_train, y_test, y_train
