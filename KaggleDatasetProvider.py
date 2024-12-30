@@ -1,9 +1,11 @@
+import logging
 import os
 from pathlib import Path
 
 import kagglehub
 import pandas as pd
 
+LOGGER = logging.getLogger(__name__)
 
 class KaggleDatasetProvider:
 
