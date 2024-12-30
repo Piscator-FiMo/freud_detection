@@ -101,30 +101,32 @@ def GridSearch(classifier, X_train, y_train, params):
     # We automatically get the logistic regression with the best parameters.
     return grid.best_estimator_
 
-def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tree):
+def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tree, name=None):
     log_reg_cf = confusion_matrix(y_test, y_pred_log_reg)
     kneighbors_cf = confusion_matrix(y_test, y_pred_knear)
     svc_cf = confusion_matrix(y_test, y_pred_svc)
     tree_cf = confusion_matrix(y_test, y_pred_tree)
 
     fig, ax = plt.subplots(2, 2, figsize=(22, 12))
+    if name is not None:
+        fig.suptitle(name, fontsize=14)
 
-    sns.heatmap(log_reg_cf, ax=ax[0][0], annot=True, cmap=plt.cm.copper)
+    sns.heatmap(log_reg_cf, ax=ax[0][0], annot=True, cmap=plt.cm.copper, fmt='d')
     ax[0, 0].set_title("Logistic Regression \n Confusion Matrix", fontsize=14)
     ax[0, 0].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[0, 0].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
-    sns.heatmap(kneighbors_cf, ax=ax[0][1], annot=True, cmap=plt.cm.copper)
+    sns.heatmap(kneighbors_cf, ax=ax[0][1], annot=True, cmap=plt.cm.copper, fmt='d')
     ax[0][1].set_title("KNearsNeighbors \n Confusion Matrix", fontsize=14)
     ax[0][1].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[0][1].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
-    sns.heatmap(svc_cf, ax=ax[1][0], annot=True, cmap=plt.cm.copper)
-    ax[1][0].set_title("Suppor Vector Classifier \n Confusion Matrix", fontsize=14)
+    sns.heatmap(svc_cf, ax=ax[1][0], annot=True, cmap=plt.cm.copper, fmt='d')
+    ax[1][0].set_title("Support Vector Classifier \n Confusion Matrix", fontsize=14)
     ax[1][0].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[1][0].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
-    sns.heatmap(tree_cf, ax=ax[1][1], annot=True, cmap=plt.cm.copper)
+    sns.heatmap(tree_cf, ax=ax[1][1], annot=True, cmap=plt.cm.copper, fmt='d')
     ax[1][1].set_title("DecisionTree Classifier \n Confusion Matrix", fontsize=14)
     ax[1][1].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[1][1].set_yticklabels(['', ''], fontsize=14, rotation=360)
@@ -132,7 +134,7 @@ def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tr
     plt.show()
 
 
-def run_classifiers(X_test, X_train, y_test, y_train):
+def run_classifiers(X_test, X_train, y_test, y_train, name=None):
     classifiers = {
         "LogisiticRegression": LogisticRegression(),
         "KNearest": KNeighborsClassifier(),
@@ -167,7 +169,7 @@ def run_classifiers(X_test, X_train, y_test, y_train):
     y_pred_knear = knears_neighbors.predict(X_test)
     y_pred_svc = svc.predict(X_test)
     y_pred_tree = tree_clf.predict(X_test)
-    showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree)
+    showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, name)
     print('Logistic Regression:')
     print(classification_report(y_test, y_pred_log_reg))
     print('KNears Neighbors:')
