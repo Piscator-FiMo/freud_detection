@@ -9,7 +9,9 @@ class DfGeneratorFromCSVs:
         csv_files = [file for file in os.listdir(dir_path) if file.endswith('.csv')]
         dataframes = [pd.read_csv(os.path.join(dir_path, file)) for file in csv_files]
         df_concat = pd.concat(dataframes, ignore_index=True)
-        return self.ensure_numeric_dtypes(df_concat)
+        df_numeric_columns = self.ensure_numeric_dtypes(df_concat)
+        LOGGER.warning("Removing %i rows containing NaN.", df_numeric_columns.isna().any(axis=1).sum())
+        return df_numeric_columns.dropna()
 
     def ensure_numeric_dtypes(self, df: pd.DataFrame) -> pd.DataFrame:
         for column in df.columns:
