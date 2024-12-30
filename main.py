@@ -8,5 +8,8 @@ if __name__ == "__main__":
     df = KaggleDatasetProvider().fetch_data()
     df_synthetic = DfGeneratorFromCSVs().generate_df_from_csvs('data')
     df_synthetic = remove_test_data_from_train_data(df_synthetic, df)
-    X_train, X_test, y_train, y_test = Preprocessor(df_synthetic=df_synthetic, df_original=df).split_undersampling()
-    run_classifiers(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+    dataset_splits = Preprocessor(df_synthetic=df_synthetic, df_original=df).split_undersampling()
+    run_classifiers(X_train=dataset_splits.X_train,
+                    y_train=dataset_splits.y_train,
+                    X_test=dataset_splits.X_test,
+                    y_test=dataset_splits.y_test)
