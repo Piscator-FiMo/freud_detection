@@ -1,8 +1,8 @@
-from df_generator_from_csvs import DfGeneratorFromCSVs
-from preprocessor import Preprocessor
-from remove_test_data_from_train_data import remove_test_data_from_train_data
-from run_classification import prepare_undersampled_split, run_classifiers
 from KaggleDatasetProvider import KaggleDatasetProvider
+from df_generator_from_csvs import DfGeneratorFromCSVs
+from preprocessing.preprocessor import Preprocessor
+from remove_test_data_from_train_data import remove_test_data_from_train_data
+from run_classification import run_classifiers
 
 if __name__ == "__main__":
     df = KaggleDatasetProvider().fetch_data()
