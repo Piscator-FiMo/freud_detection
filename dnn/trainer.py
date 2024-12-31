@@ -17,7 +17,7 @@ def train_loop(model: NeuralNetwork, optimizer) -> list:
     loss_history = []
     for batch, (X, y) in enumerate(model.train_loader):
         # Compute prediction and loss
-        pred = model.model(X)
+        pred = model(X)
         # weights = create_weighted_bceloss(y, 1, 3)
         loss_fn = nn.CrossEntropyLoss()
         loss = loss_fn(pred, y.long())
@@ -27,7 +27,7 @@ def train_loop(model: NeuralNetwork, optimizer) -> list:
         optimizer.step()
         optimizer.zero_grad()
         if batch % 100 == 0:
-            loss, current = loss.item(), batch * model.batch_size + len(X)
+            loss, current = loss.item(), batch * model._batch_size + len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
     return loss_history
@@ -44,7 +44,7 @@ def test_loop(model: NeuralNetwork):
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
     with torch.no_grad():
         for X, y in model.test_loader:
-            pred = model.model(X)
+            pred = model(X)
             # weights = create_weighted_bceloss(y, 1, 3)
             loss_fn = nn.CrossEntropyLoss()
             test_loss += loss_fn(pred, y.long()).item()
@@ -130,18 +130,8 @@ def count_values(df, column_name, target_value):
 
 if __name__ == "__main__":
     df = KaggleDatasetProvider().fetch_data()
-    df_synthetic = DfGeneratorFromCSVs().generate_df_from_csvs('data')
+    df_synthetic = DfGeneratorFromCSVs().generate_df_from_csvs('../data')
     df_synthetic = remove_test_data_from_train_data(df_synthetic, df)
     preprocessor = Preprocessor(df_synthetic=df_synthetic, df_original=df)
     synthetic_dataset_splits = preprocessor.split_with_synthetic()
     model, loss_hist, precision, recall, f1_score = run_training(ds=synthetic_dataset_splits)
-
-
-
-
-
-    non_fraud_count = count_values(synthetic_dataset_splits.y_train, 'Class', 0)
-    fraud_count = count_values(synthetic_dataset_splits.y_train, 'Class', 1)
-    total_count = non_fraud_count + fraud_count
-    print(f"Non Fraud: {non_fraud_count} ({(non_fraud_count / total_count) * 100:.2f}%)")
-    print(f"Fraud: {fraud_count} ({(fraud_count / total_count) * 100:.2f}%)")

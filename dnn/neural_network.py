@@ -15,28 +15,26 @@ class NeuralNetwork(nn.Module):
         self._batch_size = 64
 
 
-        target_tensor = torch.tensor(dataset_split.y_train)
-        test_target_tensor = torch.tensor(dataset_split.y_test)
-        train_tensor = self.to_tensor(dataset_split.X_train)
-        test_tensor = self.to_tensor(dataset_split.X_test)
+        target_tensor = torch.tensor(dataset_split.y_train.values)
+        test_target_tensor = torch.tensor(dataset_split.y_test.values)
+        train_tensor = torch.tensor(dataset_split.X_train.values)
+        test_tensor = torch.tensor(dataset_split.X_test.values)
         train_ds = data_utils.TensorDataset(train_tensor, target_tensor)
         test_ds = data_utils.TensorDataset(test_tensor, test_target_tensor)
-        self.train_loader = data_utils.DataLoader(dataset=train_ds, batch_size=self.batch_size, shuffle=True)
-        self.test_loader = data_utils.DataLoader(dataset=test_ds, batch_size=self.batch_size, shuffle=False)
+        self.train_loader = data_utils.DataLoader(dataset=train_ds, batch_size=self._batch_size, shuffle=True)
+        self.test_loader = data_utils.DataLoader(dataset=test_ds, batch_size=self._batch_size, shuffle=False)
         self.n_inputs = dataset_split.X_train.shape[1]
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(self.n_inputs, 32),
-            nn.ReLU(),
-            nn.Linear(32, 2),
+            nn.Linear(self.n_inputs, 32).double(),
+            nn.ReLU().double(),
+            nn.Linear(32, 2).double(),
             nn.Softmax()
         )
 
     def forward(self, x):
         x = self.flatten(x)
-        return self.linear_relu_stack(x)
 
-    def to_tensor(self, df: pd.DataFrame) -> Tensor:
-        return torch.tensor(df.drop(self._prediction_column, axis=1).values.astype(np.float32))
+        return self.linear_relu_stack(x)
 
     def create_weighted_bceloss(self, target_tensor, target_value, weight_factor):
         # Create a weight tensor with all ones initially

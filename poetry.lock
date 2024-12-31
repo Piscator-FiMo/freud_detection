@@ -1629,17 +1629,6 @@ files = [
 ]
 
 [[package]]
-name = "sklearn-preprocessing"
-version = "0.1.0"
-description = ""
-optional = false
-python-versions = "*"
-files = [
-    {file = "sklearn_preprocessing-0.1.0-py3-none-any.whl", hash = "sha256:b06a5fab7c80488defbb09e58f0933cb8264518c08b75c027e5587bae2929f99"},
-    {file = "sklearn_preprocessing-0.1.0.tar.gz", hash = "sha256:049c26b47c40a8c32d4352e82b0d52422e2d74cc643947696cd86f5a12af6cec"},
-]
-
-[[package]]
 name = "sniffio"
 version = "1.3.1"
 description = "Sniff out which async library your code is running under"
@@ -1815,4 +1804,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.12"
-content-hash = "41fe53ad2059f0211ff5739c072dc0b202596777cc1e3e32b1e0b00553b539e6"
+content-hash = "4b38764be250ba24c1b409125aa4d4a937733aaf9005156295eeef8c88594936"
