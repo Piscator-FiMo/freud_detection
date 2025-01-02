@@ -8,6 +8,8 @@ from preprocessing.dataset_splits import DatasetSplits
 from preprocessing.preprocessor import Preprocessor
 from remove_test_data_from_train_data import remove_test_data_from_train_data
 
+from visualizedata.visualize import *
+
 
 def train_loop(model: NeuralNetwork, optimizer) -> list:
     size = len(model.train_loader.dataset)
@@ -42,9 +44,11 @@ def test_loop(model: NeuralNetwork):
     test_loss, correct, precision, recall, f1_score = 0, 0, 0, 0, 0
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
+    predictions = []
     with torch.no_grad():
         for X, y in model.test_loader:
             pred = model(X)
+            predictions.extend(pred.argmax(1).tolist())
             # weights = create_weighted_bceloss(y, 1, 3)
             loss_fn = nn.CrossEntropyLoss()
             test_loss += loss_fn(pred, y.long()).item()
@@ -74,11 +78,11 @@ def test_loop(model: NeuralNetwork):
     recall /= num_batches
     f1_score /= num_batches
     print(
-        f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n, Avg Precision: {(100 * precision):0.1f}%, Avg Recall {(100 * recall):0.1f}%, Avg F1 Score {(f1_score)}")
-    return precision, recall, f1_score
+        f"Test Error: Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f}, Avg Precision: {(100 * precision):0.1f}%, Avg Recall {(100 * recall):0.1f}%, Avg F1 Score {(f1_score)}")
+    return precision, recall, f1_score, predictions
 
 
-def run_training(ds: DatasetSplits, precision_threshold=None, f1_score_threshold=None,
+def run_training(ds: DatasetSplits, epochs=20, precision_threshold=None, f1_score_threshold=None,
                  recall_threshold=None) -> tuple:
     device = (
         "cuda"
@@ -92,13 +96,13 @@ def run_training(ds: DatasetSplits, precision_threshold=None, f1_score_threshold
     learning_rate = 1e-3
     # plot varianz der loss functions über die learning rates
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    epochs = 20
+    #epochs = 200
     all_loss_history = []
     for t in range(epochs):
         print(f"Epoch {t + 1}\n-------------------------------")
         epoch_loss_history = train_loop(model, optimizer)
         all_loss_history.extend(epoch_loss_history)
-        precision_val, recall, f1_score = test_loop(model)
+        precision_val, recall, f1_score, predictions = test_loop(model)
         if precision_threshold and precision_val > precision_threshold:
             print("Early stopping for precision triggered")
             return model, all_loss_history, precision_val, recall, f1_score
@@ -109,7 +113,7 @@ def run_training(ds: DatasetSplits, precision_threshold=None, f1_score_threshold
             print("Early stopping for recall triggered")
             return model, all_loss_history, precision_val, recall, f1_score
     print("Done!")
-    return (model, all_loss_history, precision_val, recall, f1_score)
+    return (model, all_loss_history, precision_val, recall, f1_score, predictions)
 
 def count_values(df, column_name, target_value):
     """
@@ -133,5 +137,13 @@ if __name__ == "__main__":
     df_synthetic = DfGeneratorFromCSVs().generate_df_from_csvs('../data')
     df_synthetic = remove_test_data_from_train_data(df_synthetic, df)
     preprocessor = Preprocessor(df_synthetic=df_synthetic, df_original=df)
+    undersampled_dataset_splits = preprocessor.split_undersampling()
     synthetic_dataset_splits = preprocessor.split_with_synthetic()
-    model, loss_hist, precision, recall, f1_score = run_training(ds=synthetic_dataset_splits)
+
+    num_epochs = 200
+    model, loss_hist, precision, recall, f1_score, predictions_undersamp = run_training(ds=undersampled_dataset_splits, epochs=num_epochs)
+    showConfusionMatrix(undersampled_dataset_splits.y_test, predictions_undersamp, "DNN with Undersampled Data")
+
+    model, loss_hist, precision, recall, f1_score, predictions_synthetic = run_training(ds=synthetic_dataset_splits, epochs=num_epochs)
+    showConfusionMatrix(synthetic_dataset_splits.y_test, predictions_synthetic, "DNN with Synthetic Data")
+

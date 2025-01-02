@@ -15,10 +15,12 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
+from visualizedata.visualize import *
+
 from KaggleDatasetProvider import KaggleDatasetProvider
 
 
-#
+'''
 def visualize_data(df: pd.DataFrame, amount="Amount", time="Time"):
     #Create Barplot to Show Distribution of Classes
     sns.countplot(df, x = 'Class')
@@ -32,6 +34,7 @@ def visualize_data(df: pd.DataFrame, amount="Amount", time="Time"):
     sns.histplot(data=df, x=time, bins=30)
     plt.title('Distribution of Transaction Time', fontsize=14)
     plt.show()
+'''
 
 def scale_data(df: pd.DataFrame):
     std_scaler = StandardScaler()
@@ -43,6 +46,7 @@ def scale_data(df: pd.DataFrame):
 
     return df
 
+'''
 def show_correlationMatrix(df: pd.DataFrame, new_df: pd.DataFrame):
     # Make sure we use the subsample in our correlation
 
@@ -57,6 +61,7 @@ def show_correlationMatrix(df: pd.DataFrame, new_df: pd.DataFrame):
     sns.heatmap(sub_sample_corr, cmap='coolwarm_r', annot_kws={'size': 20}, ax=ax2)
     ax2.set_title('SubSample Correlation Matrix \n (use for reference)', fontsize=14)
     plt.show()
+'''
 
 def removeOutliers(new_df: pd.DataFrame, col):
     # # -----> V14 Removing Outliers (Highest Negative Correlated with Labels)
@@ -100,7 +105,7 @@ def GridSearch(classifier, X_train, y_train, params):
     grid.fit(X_train, y_train)
     # We automatically get the logistic regression with the best parameters.
     return grid.best_estimator_
-
+'''
 def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tree, name=None):
     log_reg_cf = confusion_matrix(y_test, y_pred_log_reg)
     kneighbors_cf = confusion_matrix(y_test, y_pred_knear)
@@ -132,7 +137,7 @@ def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tr
     ax[1][1].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
     plt.show()
-
+'''
 
 def run_classifiers(X_test, X_train, y_test, y_train, name=None):
     classifiers = {
@@ -169,7 +174,7 @@ def run_classifiers(X_test, X_train, y_test, y_train, name=None):
     y_pred_knear = knears_neighbors.predict(X_test)
     y_pred_svc = svc.predict(X_test)
     y_pred_tree = tree_clf.predict(X_test)
-    showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, name)
+    showConfusionMatrix2x2(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree)
     print('Logistic Regression:')
     print(classification_report(y_test, y_pred_log_reg))
     print('KNears Neighbors:')

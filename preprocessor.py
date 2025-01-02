@@ -1,7 +1,8 @@
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 
-from run_classification import scale_data
+from run_classification import scale_data, removeOutliers
 
 
 class DatasetSplits:
@@ -41,6 +42,20 @@ class Preprocessor:
         df_for_testing = pd.concat([df_regular_for_testing, df_fraud_for_testing])
         df_for_training = pd.concat([df_regular_for_training, df_synthetic])
 
+        df_for_testing = df_for_testing.sample(frac=1, random_state=42)
+        df_for_training = df_for_training.sample(frac=1, random_state=42)
+
+
+        # Remove Outliers from Variables with High Correlation
+        df_for_training = removeOutliers(df_for_training, col='V10')
+        df_for_training = removeOutliers(df_for_training, col='V12')
+        df_for_training = removeOutliers(df_for_training, col='V14')
+        # Remove Outliers from Variables with High Correlation
+        df_for_testing = removeOutliers(df_for_testing, col='V10')
+        df_for_testing = removeOutliers(df_for_testing, col='V12')
+        df_for_testing = removeOutliers(df_for_testing, col='V14')
+
+
         X_test = df_for_testing.drop('Class', axis=1)
         y_test = df_for_testing['Class']
         X_train = df_for_training.drop('Class', axis=1)
@@ -55,12 +70,18 @@ class Preprocessor:
     def split_undersampling(self) -> DatasetSplits:
         df = self.df_original.copy()
         # create balanced dataset
+        # Remove Outliers from Variables with High Correlation
+        df = removeOutliers(df, col='V10')
+        df = removeOutliers(df, col='V12')
+        df = removeOutliers(df, col='V14')
         # Undersample Non-Fraud Transactions
         shuffled_df = df.sample(frac=1)
         # amount of fraud classes 492 rows.
         frauds_df = shuffled_df.loc[df['Class'] == 1]
         non_frauds_df = shuffled_df.loc[df['Class'] == 0][:frauds_df.shape[0]]
         balanced_df = pd.concat([frauds_df, non_frauds_df])
+
+        balanced_df = balanced_df.sample(frac=1, random_state=42)
         # do train_test_split
         X = balanced_df.drop('Class', axis=1)
         y = balanced_df['Class']
@@ -68,3 +89,5 @@ class Preprocessor:
         X_train = scale_data(X_train)
         X_test = scale_data(X_test)
         return DatasetSplits(y_train=y_train, y_test=y_test, X_train=X_train, X_test=X_test, name="undersampling")
+
+

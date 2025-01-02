@@ -1,55 +1,43 @@
-import kagglehub
-import pandas as pd
-import numpy as np
-from openai import OpenAI
-from dotenv import load_dotenv
-import os
+from df_generator_from_csvs import DfGeneratorFromCSVs
+from preprocessor import Preprocessor
+from remove_test_data_from_train_data import remove_test_data_from_train_data
+from run_classification import prepare_undersampled_split, run_classifiers
+from KaggleDatasetProvider import KaggleDatasetProvider
+from dnn.neural_network import NeuralNetwork
 
-# Load environment variables from .env file
-load_dotenv()
+from dnn.trainer import *
+from visualizedata.visualize import  *
 
-# Initializing OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-# MODEL = 'o1-preview'
-MODEL = 'gpt-4o-mini'
-
-# Download data
-path = kagglehub.dataset_download("mlg-ulb/creditcardfraud")
-print("Path to dataset files:", path)
-
-# Load data
-df = pd.read_csv(path + "/creditcard.csv")
-df.info()
-
-# How many good/fraudulent transactions are there?
-print(df['Class'].value_counts())
-
-# Take out the fraudulent transactions
-df_fraud = df[df['Class'] == 1]
-df_splits = np.array_split(df_fraud, 6)
-
-# print(df_fraud.sample(frac=.75, random_state=1).to_csv(index=False))
-# print(pd.DataFrame(df_splits[0]).to_csv(index=False))
-
-
-# https://cookbook.openai.com/examples/sdg1
-# ToDo: better prompt!
-def generate_data(df: pd.DataFrame):
-    question = f"""
-    Here are some examples of fraudulent transactions. Please generate synthetic data that looks similar to this data.
-
-    {df.to_csv(index=False)}
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant designed to generate synthetic data."},
-            {"role": "user", "content": question}
-        ]
-    )
-    return response.choices[0].message.content
 
 
 if __name__ == "__main__":
-    generate_data(pd.DataFrame(df_splits[0]))
+    df = KaggleDatasetProvider().fetch_data()
+    df_synthetic = DfGeneratorFromCSVs().generate_df_from_csvs('data')
+    df_synthetic = remove_test_data_from_train_data(df_synthetic, df)
+    preprocessor = Preprocessor(df_synthetic=df_synthetic, df_original=df)
+    undersampled_dataset_splits = preprocessor.split_undersampling()
+    synthetic_dataset_splits = preprocessor.split_with_synthetic()
+
+
+    visualize_data(df)
+    show_correlationMatrix(df, undersampled_dataset_splits.X_train, synthetic_dataset_splits.X_train)
+
+    run_classifiers(X_train=undersampled_dataset_splits.X_train,
+                    y_train=undersampled_dataset_splits.y_train,
+                    X_test=undersampled_dataset_splits.X_test,
+                    y_test=undersampled_dataset_splits.y_test,
+                    name=undersampled_dataset_splits.name)
+
+    run_classifiers(X_test=synthetic_dataset_splits.X_test,
+                    X_train=synthetic_dataset_splits.X_train,
+                    y_test=synthetic_dataset_splits.y_test,
+                    y_train=synthetic_dataset_splits.y_train,
+                    name=synthetic_dataset_splits.name)
+
+
+    num_epochs = 200
+    model, loss_hist, precision, recall, f1_score, predictions_undersamp = run_training(ds=undersampled_dataset_splits, epochs=num_epochs)
+    showConfusionMatrix(undersampled_dataset_splits.y_test, predictions_undersamp, "DNN with Undersampled Data")
+
+    #model, loss_hist, precision, recall, f1_score, predictions_synthetic = run_training(ds=synthetic_dataset_splits, epochs=num_epochs)
+    #showConfusionMatrix(synthetic_dataset_splits.y_test, predictions_synthetic, "DNN with Synthetic Data")

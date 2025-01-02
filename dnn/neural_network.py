@@ -27,6 +27,8 @@ class NeuralNetwork(nn.Module):
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(self.n_inputs, 32).double(),
             nn.ReLU().double(),
+            nn.Linear(32, 32).double(),
+            nn.ReLU().double(),
             nn.Linear(32, 2).double(),
             nn.Softmax()
         )
