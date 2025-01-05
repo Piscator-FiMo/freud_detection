@@ -119,8 +119,9 @@ def showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred
     kneighbors_cf = confusion_matrix(y_test, y_pred_knear)
     svc_cf = confusion_matrix(y_test, y_pred_svc)
     tree_cf = confusion_matrix(y_test, y_pred_tree)
+    catboost_cf = confusion_matrix(y_test, y_pred_catboost)
 
-    fig, ax = plt.subplots(2, 2, figsize=(22, 12))
+    fig, ax = plt.subplots(2, 3, figsize=(22, 12))
     if name is not None:
         fig.suptitle(name, fontsize=14)
 
@@ -148,6 +149,13 @@ def showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred
     ax[1][1].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[1][1].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
+    sns.heatmap(catboost_cf, ax=ax[0][2],
+                annot=True, cmap=plt.cm.copper, fmt='d')
+    ax[0][2].set_title(
+        "CatBoost Classifier \n Confusion Matrix", fontsize=14)
+    ax[0][2].set_xticklabels(['', ''], fontsize=14, rotation=90)
+    ax[0][2].set_yticklabels(['', ''], fontsize=14, rotation=360)
+
     plt.show()
 
 
@@ -164,17 +172,33 @@ def run_classifiers(dataset):
         "LogisiticRegression": LogisticRegression(),
         "KNearest": KNeighborsClassifier(),
         "Support Vector Classifier": SVC(),
-        "DecisionTreeClassifier": DecisionTreeClassifier()
+        "DecisionTreeClassifier": DecisionTreeClassifier(),
+        "CatBoost": CatBoostClassifier(**{'iterations': 2000,
+                                          'random_seed': 42,
+                                          'eval_metric': cb_metrics.Accuracy(),
+                                          # 'logging_level': 'Silent',
+                                          #   'use_best_model': True,
+                                          # Early stopping
+                                          'od_type': 'Iter',
+                                          'od_wait': 100})
     }
     classifiers_params = {
         "LogisiticRegression": {"penalty": ['l1', 'l2'], 'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]},
         "KNearest": {"n_neighbors": list(range(2, 5, 1)), 'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']},
         "Support Vector Classifier": {'C': [0.5, 0.7, 0.9, 1], 'kernel': ['rbf', 'poly', 'sigmoid', 'linear']},
         "DecisionTreeClassifier": {"criterion": ["gini", "entropy"], "max_depth": list(range(2, 4, 1)),
-                                   "min_samples_leaf": list(range(5, 7, 1))}
+                                   "min_samples_leaf": list(range(5, 7, 1))},
+        "CatBoost":    {}
+    }
+    fit_params = {
+        "CatBoost": {
+            'eval_set': Pool(X_validation, y_validation),
+        }
     }
     for key, classifier in classifiers.items():
-        classifier.fit(X_train, y_train)
+        params = fit_params.get(key, {})
+        print(params)
+        classifier.fit(X_train, y_train, **params)
         training_score = cross_val_score(classifier, X_train, y_train, cv=5)
         print("Classifiers: ", classifier.__class__.__name__, "Has a training score of",
               round(training_score.mean(), 2) * 100, "% accuracy score")
@@ -186,12 +210,17 @@ def run_classifiers(dataset):
                      classifiers_params["Support Vector Classifier"])
     tree_clf = GridSearch(classifiers["DecisionTreeClassifier"], X_train, y_train,
                           classifiers_params["DecisionTreeClassifier"])
+    catboost_clf = GridSearch(classifiers["CatBoost"],
+                              X_train, y_train, classifiers_params["CatBoost"])
+
     log_reg_pred = cross_val_predict(
         log_reg, X_train, y_train, cv=5, method="decision_function")
     knears_pred = cross_val_predict(knears_neighbors, X_train, y_train, cv=5)
     svc_pred = cross_val_predict(
         svc, X_train, y_train, cv=5, method="decision_function")
     tree_pred = cross_val_predict(tree_clf, X_train, y_train, cv=5)
+    catboost_pred = cross_val_predict(catboost_clf, X_train, y_train, cv=5)
+
     # Logistic Regression fitted using SMOTE technique
     y_pred_log_reg = log_reg.predict(X_test)
     y_pred_knear = knears_neighbors.predict(X_test)
@@ -207,6 +236,8 @@ def run_classifiers(dataset):
     print(classification_report(y_test, y_pred_svc))
     print('Support Vector Classifier:')
     print(classification_report(y_test, y_pred_tree))
+    print('CatBoost Classifier:')
+    print(classification_report(y_test, y_pred_catboost))
 
 
 def prepare_undersampled_split(df):
