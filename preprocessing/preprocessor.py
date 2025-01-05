@@ -58,10 +58,16 @@ class Preprocessor:
         frauds_df = shuffled_df.loc[df['Class'] == 1]
         non_frauds_df = shuffled_df.loc[df['Class'] == 0][:frauds_df.shape[0]]
         balanced_df = pd.concat([frauds_df, non_frauds_df])
+        val_df = (pd.merge(shuffled_df, balanced_df, how='outer', indicator=True)
+                    .query('_merge=="left_only"')
+                    .drop(columns=['_merge'], axis=1))
+        val_data = val_df.drop('Class', axis=1)
+        val_target = val_df['Class']
         # do train_test_split
         X = balanced_df.drop('Class', axis=1)
         y = balanced_df['Class']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         X_train = scale_data(X_train)
         X_test = scale_data(X_test)
-        return DatasetSplits(y_train=y_train, y_test=y_test, X_train=X_train, X_test=X_test, name="undersampling")
+        return DatasetSplits(y_train=y_train, y_test=y_test, X_train=X_train, X_test=X_test, name="undersampling", X_val=val_data, y_val=val_target)
+

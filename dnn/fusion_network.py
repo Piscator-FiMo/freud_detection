@@ -4,17 +4,16 @@ from pathlib import Path
 
 import pandas as pd
 import torch
-import torch.utils.data as data_utils
 from pandas import Series
 from torch import nn, Tensor
+import torch.utils.data as data_utils
 
-from preprocessing.dataset_splits import DatasetSplits
+from preprocessor import DatasetSplits
 
 
-class NeuralNetwork(nn.Module):
+class FusionNetwork(nn.Module):
     def __init__(self, dataset_split: DatasetSplits, normalise: bool = True):
-        super(NeuralNetwork, self).__init__()
-        self.flatten = nn.Flatten()
+        super(FusionNetwork, self).__init__()
         self._prediction_column = 'Class'
         self.batch_size = 64
 
@@ -27,14 +26,38 @@ class NeuralNetwork(nn.Module):
             self.val_loader = loader
 
         self.n_inputs = dataset_split.X_train.shape[1]
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(self.n_inputs, 32).double(),
+        self.deep = nn.Sequential(
+            nn.Linear(self.n_inputs, 64).double(),
             nn.ReLU().double(),
-            nn.Linear(32, 32).double(),
+            nn.Linear(64, 64).double(),
             nn.ReLU().double(),
-            nn.Linear(32, 2).double(),
+            nn.Linear(64, 64).double(),
+            nn.ReLU().double(),
+            nn.Linear(64, 64).double(),
+            nn.ReLU().double(),
+            nn.Linear(64, 64).double(),
+            nn.ReLU().double(),
+            nn.Linear(64, 2).double(),
             nn.Softmax()
         )
+        self.wide = nn.Sequential(
+            nn.Linear(self.n_inputs, 5000).double(),
+            nn.ReLU().double(),
+            nn.Linear(5000, 2).double(),
+            nn.Softmax()
+        )
+        self.fusion = nn.Sequential(
+            nn.Linear(4, 16).double(),
+            nn.ReLU().double(),
+            nn.Linear(16, 2).double(),
+            nn.Softmax()
+        )
+
+    def forward(self, x):
+        deep = self.deep(x)
+        wide = self.wide(x)
+        concat = torch.cat((deep, wide), dim=1)
+        return self.fusion(concat)
 
     def transform(self, data: pd.DataFrame, target: Series, shuffle: bool, normalize: bool = True):
         if normalize:
@@ -45,11 +68,6 @@ class NeuralNetwork(nn.Module):
         val_target_tensor = torch.tensor(target.values)
         val_ds = data_utils.TensorDataset(val_tensor, val_target_tensor)
         return data_utils.DataLoader(dataset=val_ds, batch_size=self.batch_size, shuffle=shuffle)
-
-    def forward(self, x):
-        x = self.flatten(x)
-
-        return self.linear_relu_stack(x)
 
     def create_weighted_bceloss(self, target_tensor, target_value, weight_factor):
         # Create a weight tensor with all ones initially
