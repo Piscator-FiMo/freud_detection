@@ -3,7 +3,7 @@ from torch import nn
 
 from KaggleDatasetProvider import KaggleDatasetProvider
 from df_generator_from_csvs import DfGeneratorFromCSVs
-from neural_network import NeuralNetwork
+from dnn.neural_network import NeuralNetwork
 from preprocessing.dataset_splits import DatasetSplits
 from preprocessing.preprocessor import Preprocessor
 from remove_test_data_from_train_data import remove_test_data_from_train_data

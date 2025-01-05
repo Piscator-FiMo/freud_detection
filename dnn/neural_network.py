@@ -1,8 +1,7 @@
-import torch
-from torch import nn, Tensor
 import pandas as pd
-import numpy as np
+import torch
 import torch.utils.data as data_utils
+from torch import nn, Tensor
 
 from preprocessing.dataset_splits import DatasetSplits
 
