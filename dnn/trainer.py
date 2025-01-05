@@ -1,6 +1,7 @@
 import os.path
 from typing import Tuple, Any, List
 
+import numpy as np
 import torch
 from pandas import Series
 from sklearn import metrics
@@ -71,13 +72,15 @@ def test_loop(model: NeuralNetwork, device: str) -> tuple[int | Any, int | Any, 
     test_loss, correct, precision, recall, f1_score = 0, 0, 0, 0, 0
     # Evaluating the model with torch.no_grad() ensures that no gradients are computed during test mode
     # also serves to reduce unnecessary gradient computations and memory usage for tensors with requires_grad=True
-    predictions = []
+    predictions = pd.DataFrame(columns=['target', 'prediction'])
     with torch.no_grad():
         for X, y in model.test_loader:
             X = X.to(device)
             y = y.to(device)
             pred = model(X)
-            predictions.extend(pred.argmax(1).tolist())
+            new_predictions = pd.DataFrame.from_dict(
+                {'target': y.cpu().numpy(), 'prediction': pred.argmax(1).cpu().numpy()})
+            predictions = pd.concat([predictions, new_predictions])
             # weights = create_weighted_bceloss(y, 1, 3)
             loss_fn = nn.CrossEntropyLoss()
             test_loss += loss_fn(pred, y.long()).item()
@@ -196,8 +199,9 @@ def run_training(ds: DatasetSplits, name: str, model_class, epochs=20, precision
     print("Done!")
     return fraud_detection_model, all_loss_history, precision, recall, f1_score, predictions
 
+
 def plot_roc_curve(target: Series, pred):
-    fpr, tpr, thresholds = metrics.roc_curve(target, pred, pos_label=2)
+    fpr, tpr, thresholds = metrics.roc_curve(target.to_list(), pred.to_list(), pos_label=2)
     roc_auc = metrics.auc(fpr, tpr)
     plt.title('Receiver Operating Characteristic')
     plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % roc_auc)
@@ -207,6 +211,19 @@ def plot_roc_curve(target: Series, pred):
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
+    plt.show()
+
+
+def plot_confusion_matrix(df_confusion, title='Confusion matrix', cmap='plasma'):
+    plt.matshow(df_confusion, cmap=cmap)  # imshow
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(df_confusion.columns))
+    plt.xticks(tick_marks, df_confusion.columns, rotation=0)
+    plt.yticks(tick_marks, df_confusion.index)
+    #plt.tight_layout()
+    plt.ylabel(df_confusion.index.name)
+    plt.xlabel(df_confusion.columns.name)
     plt.show()
 
 
@@ -222,41 +239,51 @@ if __name__ == "__main__":
     o1_preprocessor = Preprocessor(df_synthetic=df_synthetic_o1, df_original=df)
     o1_dataset_splits = o1_preprocessor.split_with_synthetic()
 
-    num_epochs = 200
+    num_epochs = 100
     model, loss_hist, precision, recall, f1_score, predictions_fusion = run_training(ds=synthetic_dataset_splits,
                                                                                      model_class=FusionNetwork,
                                                                                      name='fusion_synthetic',
                                                                                      epochs=num_epochs)
-    showConfusionMatrix(synthetic_dataset_splits.y_test, predictions_fusion,
+
+    df_confusion = pd.crosstab(predictions_fusion['target'], predictions_fusion['prediction'])
+    # plot_confusion_matrix(df_confusion,
+    #                       "DNN with synthetic Data and Fusion Model")
+    plot_roc_curve(predictions_fusion['target'], predictions_fusion['prediction'])
+    showConfusionMatrix(predictions_fusion['target'].to_list(), predictions_fusion['prediction'].to_list(),
                         "DNN with synthetic Data and Fusion Model")
-    plot_roc_curve(synthetic_dataset_splits.y_test, predictions_fusion)
+
     model, loss_hist, precision, recall, f1_score, predictions_fusion = run_training(ds=undersampled_dataset_splits,
                                                                                      model_class=FusionNetwork,
                                                                                      name='fusion_undersampled',
                                                                                      epochs=num_epochs)
-    showConfusionMatrix(undersampled_dataset_splits.y_test, predictions_fusion,
+    showConfusionMatrix(predictions_fusion['target'].to_list(), predictions_fusion['prediction'].to_list(),
                         "DNN with Undersampled Data and Fusion Model")
-    precision_val, recall_val, f1_score_val, predictions_val = validate(model, device="cuda")
-    showConfusionMatrix(undersampled_dataset_splits.y_val, predictions_val,
-                        "DNN with Undersampled Data Validation for fusion Model")
+    plot_roc_curve(predictions_fusion['target'], predictions_fusion['prediction'])
+
+    # precision_val, recall_val, f1_score_val, predictions_val = validate(model, device="cuda")
+    # showConfusionMatrix(undersampled_dataset_splits.y_val, predictions_val,
+    #                     "DNN with Undersampled Data Validation for fusion Model")
 
     model, loss_hist, precision, recall, f1_score, predictions_undersamp = run_training(ds=undersampled_dataset_splits,
                                                                                         name='undersampled',
                                                                                         model_class=NeuralNetwork,
                                                                                         epochs=num_epochs)
-    showConfusionMatrix(undersampled_dataset_splits.y_test, predictions_undersamp, "DNN with Undersampled Data")
-    precision_val, recall_val, f1_score_val, predictions_val = validate(model, device="cuda")
-
-    showConfusionMatrix(undersampled_dataset_splits.y_val, predictions_val, "DNN with Undersampled Data Validation")
+    showConfusionMatrix(predictions_undersamp['target'].to_list(), predictions_undersamp['prediction'].to_list(), "DNN with Undersampled Data")
+    plot_roc_curve(predictions_undersamp['target'], predictions_undersamp['prediction'])
+    # precision_val, recall_val, f1_score_val, predictions_val = validate(model, device="cuda")
+    #
+    # showConfusionMatrix(undersampled_dataset_splits.y_val, predictions_val, "DNN with Undersampled Data Validation")
 
     model, loss_hist, precision, recall, f1_score, predictions_o1 = run_training(ds=o1_dataset_splits,
                                                                                  name='o1_synthetic',
                                                                                  model_class=NeuralNetwork,
                                                                                  epochs=num_epochs)
-    showConfusionMatrix(o1_dataset_splits.y_test, predictions_o1, "DNN with Synthetic Data by o1")
+    showConfusionMatrix(predictions_o1['target'].to_list(), predictions_o1['prediction'].to_list(), "DNN with Synthetic Data by o1")
+    plot_roc_curve(predictions_o1['target'], predictions_o1['prediction'])
 
     model, loss_hist, precision, recall, f1_score, predictions_synthetic = run_training(ds=synthetic_dataset_splits,
                                                                                         name='synthetic',
                                                                                         model_class=NeuralNetwork,
                                                                                         epochs=num_epochs)
-    showConfusionMatrix(synthetic_dataset_splits.y_test, predictions_synthetic, "DNN with Synthetic Data")
+    showConfusionMatrix(predictions_synthetic['target'].to_list(), predictions_synthetic['prediction'].to_list(), "DNN with Synthetic Data")
+    plot_roc_curve(predictions_synthetic['target'], predictions_synthetic['prediction'])
