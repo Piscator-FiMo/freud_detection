@@ -15,17 +15,17 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-from KaggleDatasetProvider import KaggleDatasetProvider
+from catboost import CatBoostClassifier, Pool, metrics as cb_metrics
 
 
 #
 def visualize_data(df: pd.DataFrame, amount="Amount", time="Time"):
-    #Create Barplot to Show Distribution of Classes
-    sns.countplot(df, x = 'Class')
+    # Create Barplot to Show Distribution of Classes
+    sns.countplot(df, x='Class')
     plt.title('Class Distributions \n (0: No Fraud || 1: Fraud)', fontsize=14)
     plt.show()
 
-    #Create Histogram to Show Data Distribution
+    # Create Histogram to Show Data Distribution
     sns.histplot(data=df, x=amount, bins=30)
     plt.title('Distribution of Transaction Amount', fontsize=14)
     plt.show()
@@ -33,15 +33,19 @@ def visualize_data(df: pd.DataFrame, amount="Amount", time="Time"):
     plt.title('Distribution of Transaction Time', fontsize=14)
     plt.show()
 
+
 def scale_data(df: pd.DataFrame):
     std_scaler = StandardScaler()
     rob_scaler = RobustScaler()
 
-    df['scaled_amount'] = rob_scaler.fit_transform(df['Amount'].values.reshape(-1, 1))
-    df['scaled_time'] = rob_scaler.fit_transform(df['Time'].values.reshape(-1, 1))
+    df['scaled_amount'] = rob_scaler.fit_transform(
+        df['Amount'].values.reshape(-1, 1))
+    df['scaled_time'] = rob_scaler.fit_transform(
+        df['Time'].values.reshape(-1, 1))
     df.drop(['Time', 'Amount'], axis=1, inplace=True)
 
     return df
+
 
 def show_correlationMatrix(df: pd.DataFrame, new_df: pd.DataFrame):
     # Make sure we use the subsample in our correlation
@@ -51,12 +55,16 @@ def show_correlationMatrix(df: pd.DataFrame, new_df: pd.DataFrame):
     # Entire DataFrame
     corr = df.corr()
     sns.heatmap(corr, cmap='coolwarm_r', annot_kws={'size': 20}, ax=ax1)
-    ax1.set_title("Imbalanced Correlation Matrix \n (don't use for reference)", fontsize=14)
+    ax1.set_title(
+        "Imbalanced Correlation Matrix \n (don't use for reference)", fontsize=14)
 
     sub_sample_corr = new_df.corr()
-    sns.heatmap(sub_sample_corr, cmap='coolwarm_r', annot_kws={'size': 20}, ax=ax2)
-    ax2.set_title('SubSample Correlation Matrix \n (use for reference)', fontsize=14)
+    sns.heatmap(sub_sample_corr, cmap='coolwarm_r',
+                annot_kws={'size': 20}, ax=ax2)
+    ax2.set_title(
+        'SubSample Correlation Matrix \n (use for reference)', fontsize=14)
     plt.show()
+
 
 def removeOutliers(new_df: pd.DataFrame, col):
     # # -----> V14 Removing Outliers (Highest Negative Correlated with Labels)
@@ -73,12 +81,14 @@ def removeOutliers(new_df: pd.DataFrame, col):
     print(col, ' Upper: {}'.format(vXX_upper))
 
     outliers = [x for x in vXX_fraud if x < vXX_lower or x > vXX_upper]
-    print('Feature ',col,' Outliers for Fraud Cases: {}'.format(len(outliers)))
-    print(col,' outliers:{}'.format(outliers))
+    print('Feature ', col, ' Outliers for Fraud Cases: {}'.format(len(outliers)))
+    print(col, ' outliers:{}'.format(outliers))
 
-    new_df = new_df.drop(new_df[(new_df[col] > vXX_upper) | (new_df[col] < vXX_lower)].index)
+    new_df = new_df.drop(
+        new_df[(new_df[col] > vXX_upper) | (new_df[col] < vXX_lower)].index)
     print('----' * 44)
     return new_df
+
 
 def traintest_split(df: pd.DataFrame):
     # Train Test Split
@@ -86,7 +96,8 @@ def traintest_split(df: pd.DataFrame):
     y = df['Class']
 
     # This is explicitly used for undersampling.
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
 
     X_train = X_train.values
     X_test = X_test.values
@@ -95,13 +106,15 @@ def traintest_split(df: pd.DataFrame):
 
     return X_train, X_test, y_train, y_test
 
+
 def GridSearch(classifier, X_train, y_train, params):
     grid = GridSearchCV(classifier, params)
     grid.fit(X_train, y_train)
     # We automatically get the logistic regression with the best parameters.
     return grid.best_estimator_
 
-def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tree, name=None):
+
+def showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, name=None):
     log_reg_cf = confusion_matrix(y_test, y_pred_log_reg)
     kneighbors_cf = confusion_matrix(y_test, y_pred_knear)
     svc_cf = confusion_matrix(y_test, y_pred_svc)
@@ -111,30 +124,42 @@ def showConfusionMatrix(y_test, y_pred_log_reg,y_pred_knear,y_pred_svc,y_pred_tr
     if name is not None:
         fig.suptitle(name, fontsize=14)
 
-    sns.heatmap(log_reg_cf, ax=ax[0][0], annot=True, cmap=plt.cm.copper, fmt='d')
+    sns.heatmap(log_reg_cf, ax=ax[0][0],
+                annot=True, cmap=plt.cm.copper, fmt='d')
     ax[0, 0].set_title("Logistic Regression \n Confusion Matrix", fontsize=14)
     ax[0, 0].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[0, 0].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
-    sns.heatmap(kneighbors_cf, ax=ax[0][1], annot=True, cmap=plt.cm.copper, fmt='d')
+    sns.heatmap(kneighbors_cf, ax=ax[0][1],
+                annot=True, cmap=plt.cm.copper, fmt='d')
     ax[0][1].set_title("KNearsNeighbors \n Confusion Matrix", fontsize=14)
     ax[0][1].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[0][1].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
     sns.heatmap(svc_cf, ax=ax[1][0], annot=True, cmap=plt.cm.copper, fmt='d')
-    ax[1][0].set_title("Support Vector Classifier \n Confusion Matrix", fontsize=14)
+    ax[1][0].set_title(
+        "Support Vector Classifier \n Confusion Matrix", fontsize=14)
     ax[1][0].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[1][0].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
     sns.heatmap(tree_cf, ax=ax[1][1], annot=True, cmap=plt.cm.copper, fmt='d')
-    ax[1][1].set_title("DecisionTree Classifier \n Confusion Matrix", fontsize=14)
+    ax[1][1].set_title(
+        "DecisionTree Classifier \n Confusion Matrix", fontsize=14)
     ax[1][1].set_xticklabels(['', ''], fontsize=14, rotation=90)
     ax[1][1].set_yticklabels(['', ''], fontsize=14, rotation=360)
 
     plt.show()
 
 
-def run_classifiers(X_test, X_train, y_test, y_train, name=None):
+def run_classifiers(dataset):
+    X_train = dataset.X_train
+    y_train = dataset.y_train
+    X_validation = dataset.X_validation
+    y_validation = dataset.y_validation
+    X_test = dataset.X_test
+    y_test = dataset.y_test
+    name = dataset.name
+
     classifiers = {
         "LogisiticRegression": LogisticRegression(),
         "KNearest": KNeighborsClassifier(),
@@ -155,21 +180,25 @@ def run_classifiers(X_test, X_train, y_test, y_train, name=None):
               round(training_score.mean(), 2) * 100, "% accuracy score")
     log_reg = GridSearch(classifiers["LogisiticRegression"], X_train, y_train,
                          classifiers_params["LogisiticRegression"])
-    knears_neighbors = GridSearch(classifiers["KNearest"], X_train, y_train, classifiers_params["KNearest"])
+    knears_neighbors = GridSearch(
+        classifiers["KNearest"], X_train, y_train, classifiers_params["KNearest"])
     svc = GridSearch(classifiers["Support Vector Classifier"], X_train, y_train,
                      classifiers_params["Support Vector Classifier"])
     tree_clf = GridSearch(classifiers["DecisionTreeClassifier"], X_train, y_train,
                           classifiers_params["DecisionTreeClassifier"])
-    log_reg_pred = cross_val_predict(log_reg, X_train, y_train, cv=5, method="decision_function")
+    log_reg_pred = cross_val_predict(
+        log_reg, X_train, y_train, cv=5, method="decision_function")
     knears_pred = cross_val_predict(knears_neighbors, X_train, y_train, cv=5)
-    svc_pred = cross_val_predict(svc, X_train, y_train, cv=5, method="decision_function")
+    svc_pred = cross_val_predict(
+        svc, X_train, y_train, cv=5, method="decision_function")
     tree_pred = cross_val_predict(tree_clf, X_train, y_train, cv=5)
     # Logistic Regression fitted using SMOTE technique
     y_pred_log_reg = log_reg.predict(X_test)
     y_pred_knear = knears_neighbors.predict(X_test)
     y_pred_svc = svc.predict(X_test)
     y_pred_tree = tree_clf.predict(X_test)
-    showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear, y_pred_svc, y_pred_tree, name)
+    showConfusionMatrix(y_test, y_pred_log_reg, y_pred_knear,
+                        y_pred_svc, y_pred_tree, name)
     print('Logistic Regression:')
     print(classification_report(y_test, y_pred_log_reg))
     print('KNears Neighbors:')

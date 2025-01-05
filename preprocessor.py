@@ -6,10 +6,10 @@ from run_classification import scale_data
 
 class DatasetSplits:
     def __init__(self, y_train, y_test, X_train, X_test, name):
-        self.y_train = y_train
         self.y_test = y_test
-        self.X_train = X_train
         self.X_test = X_test
+        self.X_train, self.X_validation, self.y_train, self.y_validation = train_test_split(
+            X_train, y_train, train_size=0.75, random_state=42)
         self.name = name
 
 class Preprocessor:
