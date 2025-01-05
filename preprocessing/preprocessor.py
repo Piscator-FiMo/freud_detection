@@ -18,6 +18,9 @@ class Preprocessor:
         df_synthetic = self.df_synthetic.copy()
         df_original = self.df_original.copy()
 
+        # Remove rows with invalid classifications 'Class' not in [0,1]
+        df_synthetic = df_synthetic[df_synthetic['Class'].isin([0, 1])]
+
         # Remove the first 50 entries in the df, because they were used for prompt
         df_fraud_original = df_original[df_original['Class'] == 1]
         df_regular_original = df_original[df_original['Class'] == 0]

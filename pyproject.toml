@@ -7,7 +7,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "~3.12"
-torch = "^2.5.1"
 python-dotenv = "^1.0.1"
 openai = "^1.58.1"
 kagglehub = "^0.3.6"
@@ -15,7 +14,13 @@ pandas = "^2.2.3"
 numpy = "^2.2.0"
 seaborn = "^0.13.2"
 sklearn-preprocessing = "^0.1.0"
+torch = {version = "^2.5.1+cu124", source = "pytorch_cuda"}
 scikit-learn = "^1.6.0"
+
+[[tool.poetry.source]]
+name = "pytorch_cuda"
+url = "https://download.pytorch.org/whl/cu124"
+priority = "explicit"
 
 
 [build-system]

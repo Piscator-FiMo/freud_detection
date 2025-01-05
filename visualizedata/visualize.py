@@ -1,8 +1,8 @@
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report
-import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+
 
 def showConfusionMatrix(y_test, y_pred, title):
     cfm = confusion_matrix(y_test, y_pred)

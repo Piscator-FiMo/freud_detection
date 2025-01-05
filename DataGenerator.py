@@ -6,6 +6,7 @@ import logging
 import pandas as pd
 from dotenv import load_dotenv
 from openai import OpenAI
+from tqdm import tqdm
 
 from KaggleDatasetProvider import KaggleDatasetProvider
 
@@ -54,7 +55,7 @@ if __name__ == "__main__":
 
     generator = DataGenerator()
 
-    for _ in range(10):
+    for _ in tqdm(range(10)):
         data = generator.generate_data(pd.DataFrame(df_for_generation))
         data = data.split("\n", 1)[1]
         # Read the data into a pandas DataFrame

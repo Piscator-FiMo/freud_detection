@@ -12,7 +12,7 @@ class NeuralNetwork(nn.Module):
         super(NeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
         self._prediction_column = 'Class'
-        self._batch_size = 64
+        self.batch_size = 64
 
 
         target_tensor = torch.tensor(dataset_split.y_train.values)
@@ -21,8 +21,8 @@ class NeuralNetwork(nn.Module):
         test_tensor = torch.tensor(dataset_split.X_test.values)
         train_ds = data_utils.TensorDataset(train_tensor, target_tensor)
         test_ds = data_utils.TensorDataset(test_tensor, test_target_tensor)
-        self.train_loader = data_utils.DataLoader(dataset=train_ds, batch_size=self._batch_size, shuffle=True)
-        self.test_loader = data_utils.DataLoader(dataset=test_ds, batch_size=self._batch_size, shuffle=False)
+        self.train_loader = data_utils.DataLoader(dataset=train_ds, batch_size=self.batch_size, shuffle=True)
+        self.test_loader = data_utils.DataLoader(dataset=test_ds, batch_size=self.batch_size, shuffle=False)
         self.n_inputs = dataset_split.X_train.shape[1]
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(self.n_inputs, 32).double(),
