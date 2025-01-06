@@ -4,13 +4,19 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 
-def showConfusionMatrix(y_test, y_pred, title):
+def showConfusionMatrix(y_test, y_pred, title, precision=None, recall=None, f1_score=None):
     cfm = confusion_matrix(y_test, y_pred)
     fig, ax = plt.subplots(1, 1, figsize=(22, 12))
     #sns.set(font_scale=3)
     sns.set_theme(font_scale=3)
     sns.heatmap(cfm, ax=ax, annot=True, fmt=".0f", cmap=plt.cm.copper)
     ax.set_title(title+" \n Confusion Matrix")
+    if precision is not None:
+        plt.figtext(.835, .8, f"precision = {precision:.2f}")
+    if recall is not None:
+        plt.figtext(.835, .75, f"recall = {recall:.2f}")
+    if f1_score is not None:
+        plt.figtext(.835, .7, f"f1-score = {f1_score:.2f}")
     #ax.set_xticklabels(['', ''], fontsize=24, rotation=90)
     #ax.set_yticklabels(['', ''], fontsize=24, rotation=360)
     plt.show()

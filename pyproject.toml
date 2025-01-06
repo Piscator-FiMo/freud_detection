@@ -16,6 +16,7 @@ seaborn = "^0.13.2"
 sklearn-preprocessing = "^0.1.0"
 torch = {version = "^2.5.1+cu124", source = "pytorch_cuda"}
 scikit-learn = "^1.6.0"
+imbalanced-learn = "^0.13.0"
 
 [[tool.poetry.source]]
 name = "pytorch_cuda"

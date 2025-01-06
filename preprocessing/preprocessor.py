@@ -1,4 +1,6 @@
 import pandas as pd
+from PIL.ImageFilter import SMOOTH
+from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 
 from preprocessing.dataset_splits import DatasetSplits
@@ -13,6 +15,17 @@ class Preprocessor:
 
     def preprocess(self):
         pass
+
+    def split_oversampling(self) -> DatasetSplits:
+        df = self.df_original.copy()
+        X = df.drop('Class', axis=1)
+        y = df['Class']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=42)
+        X_train_oversampled, y_train_oversampled = SMOTE(sampling_strategy='minority').fit_resample(X_train, y_train)
+        X_train_oversampled_scaled = scale_data(X_train_oversampled)
+        X_test = scale_data(X_test)
+        return DatasetSplits(y_train_oversampled, y_test, X_train_oversampled_scaled, X_test, name="SMOTE", X_val=X_val, y_val=y_val)
 
     def split_with_synthetic(self) -> DatasetSplits:
         df_synthetic = self.df_synthetic.copy()

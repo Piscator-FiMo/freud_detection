@@ -200,10 +200,10 @@ def run_training(ds: DatasetSplits, name: str, model_class, epochs=20, precision
     return fraud_detection_model, all_loss_history, precision, recall, f1_score, predictions
 
 
-def plot_roc_curve(target: Series, pred):
+def plot_roc_curve(target: Series, pred: Series, name: str):
     fpr, tpr, thresholds = metrics.roc_curve(target.to_list(), pred.to_list(), pos_label=1)
     roc_auc = metrics.auc(fpr, tpr)
-    plt.title('Receiver Operating Characteristic')
+    plt.title(f'Receiver Operating Characteristic for {name}')
     plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % roc_auc)
     plt.legend(loc='lower right')
     plt.plot([0, 1], [0, 1], 'r--')
@@ -227,6 +227,16 @@ def plot_confusion_matrix(df_confusion, title='Confusion matrix', cmap='plasma')
     plt.show()
 
 
+def run_and_plot(splits: DatasetSplits, name: str, model_class: FusionNetwork | NeuralNetwork, epochs: int = 20):
+    _, _, _precision, _recall, _f1_score, _predictions = run_training(ds=splits,
+                                                                      model_class=model_class,
+                                                                      name=name,
+                                                                      epochs=epochs)
+    showConfusionMatrix(_predictions['target'].to_list(), _predictions['prediction'].to_list(),
+                        f"DNN with {splits.name} Data and f{model_class} Model", _precision, _recall, _f1_score)
+    plot_roc_curve(_predictions['target'], _predictions['prediction'], name)
+
+
 if __name__ == "__main__":
     df = KaggleDatasetProvider().fetch_data()
     df_synthetic = DfGeneratorFromCSVs().generate_df_from_csvs('../data')
@@ -234,20 +244,24 @@ if __name__ == "__main__":
     preprocessor = Preprocessor(df_synthetic=df_synthetic, df_original=df)
     undersampled_dataset_splits = preprocessor.split_undersampling()
     synthetic_dataset_splits = preprocessor.split_with_synthetic()
+    smote_oversampled_splits = preprocessor.split_oversampling()
     df_synthetic_o1 = DfGeneratorFromCSVs().generate_df_from_csvs('../data_o1')
     df_synthetic_o1 = remove_test_data_from_train_data(df_synthetic_o1, df)
     o1_preprocessor = Preprocessor(df_synthetic=df_synthetic_o1, df_original=df)
     o1_dataset_splits = o1_preprocessor.split_with_synthetic()
 
-    num_epochs = 10
+
+    num_epochs = 200
+
+    run_and_plot(smote_oversampled_splits, 'fusion_oversampled', FusionNetwork, num_epochs)
+
     model, loss_hist, precision, recall, f1_score, predictions_fusion = run_training(ds=undersampled_dataset_splits,
                                                                                      model_class=FusionNetwork,
                                                                                      name='fusion_undersampled',
                                                                                      epochs=num_epochs)
     showConfusionMatrix(predictions_fusion['target'].to_list(), predictions_fusion['prediction'].to_list(),
-                        "DNN with Undersampled Data and Fusion Model")
-    plot_roc_curve(predictions_fusion['target'], predictions_fusion['prediction'])
-
+                        f"DNN with Undersampled Data and Fusion Model", precision, recall, f1_score)
+    plot_roc_curve(predictions_fusion['target'], predictions_fusion['prediction'], 'fusion_undersampled')
 
     model, loss_hist, precision, recall, f1_score, predictions_fusion = run_training(ds=synthetic_dataset_splits,
                                                                                      model_class=FusionNetwork,
@@ -261,7 +275,6 @@ if __name__ == "__main__":
     showConfusionMatrix(predictions_fusion['target'].to_list(), predictions_fusion['prediction'].to_list(),
                         "DNN with synthetic Data and Fusion Model")
 
-
     precision_val, recall_val, f1_score_val, predictions_val = validate(model, device="cuda")
     showConfusionMatrix(undersampled_dataset_splits.y_val, predictions_val,
                         "DNN with Undersampled Data Validation for fusion Model")
@@ -270,7 +283,8 @@ if __name__ == "__main__":
                                                                                         name='undersampled',
                                                                                         model_class=NeuralNetwork,
                                                                                         epochs=num_epochs)
-    showConfusionMatrix(predictions_undersamp['target'].to_list(), predictions_undersamp['prediction'].to_list(), "DNN with Undersampled Data")
+    showConfusionMatrix(predictions_undersamp['target'].to_list(), predictions_undersamp['prediction'].to_list(),
+                        "DNN with Undersampled Data")
     plot_roc_curve(predictions_undersamp['target'], predictions_undersamp['prediction'])
     precision_val, recall_val, f1_score_val, predictions_val = validate(model, device="cuda")
 
@@ -280,12 +294,14 @@ if __name__ == "__main__":
                                                                                  name='o1_synthetic',
                                                                                  model_class=NeuralNetwork,
                                                                                  epochs=num_epochs)
-    showConfusionMatrix(predictions_o1['target'].to_list(), predictions_o1['prediction'].to_list(), "DNN with Synthetic Data by o1")
+    showConfusionMatrix(predictions_o1['target'].to_list(), predictions_o1['prediction'].to_list(),
+                        "DNN with Synthetic Data by o1")
     plot_roc_curve(predictions_o1['target'], predictions_o1['prediction'])
 
     model, loss_hist, precision, recall, f1_score, predictions_synthetic = run_training(ds=synthetic_dataset_splits,
                                                                                         name='synthetic',
                                                                                         model_class=NeuralNetwork,
                                                                                         epochs=num_epochs)
-    showConfusionMatrix(predictions_synthetic['target'].to_list(), predictions_synthetic['prediction'].to_list(), "DNN with Synthetic Data")
+    showConfusionMatrix(predictions_synthetic['target'].to_list(), predictions_synthetic['prediction'].to_list(),
+                        "DNN with Synthetic Data")
     plot_roc_curve(predictions_synthetic['target'], predictions_synthetic['prediction'])
