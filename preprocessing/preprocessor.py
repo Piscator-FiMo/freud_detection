@@ -35,8 +35,8 @@ class Preprocessor:
 
         df_regular_for_testing = df_regular_for_testing_candidates.sample(n=df_fraud_for_testing.shape[0], random_state=42)
 
-        df_for_testing = pd.concat([df_regular_for_testing, df_fraud_for_testing])
-        df_for_training = pd.concat([df_regular_for_training, df_synthetic])
+        df_for_testing = pd.concat([df_regular_for_testing, df_fraud_for_testing]).sample(frac=1, random_state=42)
+        df_for_training = pd.concat([df_regular_for_training, df_synthetic]).sample(frac=1, random_state=42)
 
         X_test = df_for_testing.drop('Class', axis=1)
         y_test = df_for_testing['Class']
@@ -57,7 +57,7 @@ class Preprocessor:
         # amount of fraud classes 492 rows.
         frauds_df = shuffled_df.loc[df['Class'] == 1]
         non_frauds_df = shuffled_df.loc[df['Class'] == 0][:frauds_df.shape[0]]
-        balanced_df = pd.concat([frauds_df, non_frauds_df])
+        balanced_df = pd.concat([frauds_df, non_frauds_df]).sample(frac=1, random_state=42)
         val_df = (pd.merge(shuffled_df, balanced_df, how='outer', indicator=True)
                     .query('_merge=="left_only"')
                     .drop(columns=['_merge'], axis=1))
@@ -69,5 +69,5 @@ class Preprocessor:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         X_train = scale_data(X_train)
         X_test = scale_data(X_test)
-        return DatasetSplits(y_train=y_train, y_test=y_test, X_train=X_train, X_test=X_test, name="undersampling", X_val=val_data, y_val=val_target)
+        return DatasetSplits(y_train=y_train, y_test=y_test, X_train=X_train, X_test=X_test, name="undersampling", X_val=scale_data(val_data), y_val=val_target)
 

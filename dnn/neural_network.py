@@ -33,7 +33,7 @@ class NeuralNetwork(nn.Module):
             nn.Linear(32, 32).double(),
             nn.ReLU().double(),
             nn.Linear(32, 2).double(),
-            nn.Softmax()
+            nn.Softmax(dim=1)
         )
 
     def transform(self, data: pd.DataFrame, target: Series, shuffle: bool, normalize: bool = True):

@@ -38,19 +38,19 @@ class FusionNetwork(nn.Module):
             nn.Linear(64, 64).double(),
             nn.ReLU().double(),
             nn.Linear(64, 2).double(),
-            nn.Softmax()
+            nn.Softmax(dim=1)
         )
         self.wide = nn.Sequential(
             nn.Linear(self.n_inputs, 5000).double(),
             nn.ReLU().double(),
             nn.Linear(5000, 2).double(),
-            nn.Softmax()
+            nn.Softmax(dim=1)
         )
         self.fusion = nn.Sequential(
             nn.Linear(4, 16).double(),
             nn.ReLU().double(),
             nn.Linear(16, 2).double(),
-            nn.Softmax()
+            nn.Softmax(dim=1)
         )
 
     def forward(self, x):
@@ -64,10 +64,10 @@ class FusionNetwork(nn.Module):
             data_val = self.normalize_numerical(data)
         else:
             data_val = data
-        val_tensor = torch.tensor(data_val.values)
-        val_target_tensor = torch.tensor(target.values)
-        val_ds = data_utils.TensorDataset(val_tensor, val_target_tensor)
-        return data_utils.DataLoader(dataset=val_ds, batch_size=self.batch_size, shuffle=shuffle)
+        tensor = torch.tensor(data_val.values)
+        target_tensor = torch.tensor(target.values)
+        dataset = data_utils.TensorDataset(tensor, target_tensor)
+        return data_utils.DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=shuffle)
 
     def create_weighted_bceloss(self, target_tensor, target_value, weight_factor):
         # Create a weight tensor with all ones initially
