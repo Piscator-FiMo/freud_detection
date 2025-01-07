@@ -18,14 +18,20 @@ class Preprocessor:
 
     def split_oversampling(self) -> DatasetSplits:
         df = self.df_original.copy()
-        X = df.drop('Class', axis=1)
-        y = df['Class']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-        X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=42)
-        X_train_oversampled, y_train_oversampled = SMOTE(sampling_strategy='minority').fit_resample(X_train, y_train)
+        shuffled_df = df.sample(frac=1)
+        # amount of fraud classes 492 rows.
+        frauds_df = shuffled_df.loc[df['Class'] == 1]
+        non_frauds_df = shuffled_df.loc[df['Class'] == 0][:frauds_df.shape[0]]
+        balanced_df = pd.concat([frauds_df, non_frauds_df]).sample(frac=1, random_state=42)
+        X_balanced_train, X_balanced_test, y_balanced_train, y_balanced_test = train_test_split(balanced_df.drop('Class', axis=1), balanced_df['Class'], test_size=0.3, random_state=42)
+        X_balanced_train = X_balanced_train.assign(Class=y_balanced_train)
+        train_df = pd.concat([X_balanced_train, shuffled_df.loc[df['Class'] == 0][frauds_df.shape[0]:]]).sample(frac=1, random_state=42)
+        X = train_df.drop('Class', axis=1)
+        y = train_df['Class']
+        X_train_oversampled, y_train_oversampled = SMOTE(sampling_strategy='minority').fit_resample(X, y)
         X_train_oversampled_scaled = scale_data(X_train_oversampled)
-        X_test = scale_data(X_test)
-        return DatasetSplits(y_train_oversampled, y_test, X_train_oversampled_scaled, X_test, name="SMOTE", X_val=X_val, y_val=y_val)
+        X_test = scale_data(X_balanced_test)
+        return DatasetSplits(y_train_oversampled, y_balanced_test, X_train_oversampled_scaled, X_test, name="SMOTE")
 
     def split_with_synthetic(self) -> DatasetSplits:
         df_synthetic = self.df_synthetic.copy()
